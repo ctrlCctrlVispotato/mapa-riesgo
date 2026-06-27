@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <!-- Página enfocada en análisis, comparaciones y métricas del modelo. -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estadísticas - Mapa de Riesgo Urbano</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="stats-page">
+    <div class="stats-header">
+        <div>
+            <div class="stats-breadcrumb">Inicio / Estadísticas</div>
+            <div class="header-kicker">Reporte detallado</div>
+            <h1>Estadísticas</h1>
+            <p>Resumen extendido de crimen, horas, zonas y fechas</p>
+            <div class="stats-header-note" id="statsHeaderNote">Resumen total del dataset disponible, desde el primer año cargado hasta el más reciente.</div>
+        </div>
+        <div class="stats-header-actions">
+            <button id="themeToggleBtn" class="stats-toggle secondary" type="button">Modo claro</button>
+            <a class="stats-toggle" href="/">← Volver al mapa</a>
+        </div>
+    </div>
+
+    <main class="stats-layout">
+        <!-- Tarjeta base con indicadores clave y exportación. -->
+        <section class="report-card">
+            <div class="report-toolbar">
+                <div>
+                    <div class="hero-title">Indicadores clave</div>
+                    <div class="report-subtitle">Filtra por zona o descarga un reporte limpio</div>
+                </div>
+                <div class="report-actions">
+                    <div id="statsScopePill" class="toolbar-pill">Alcance: general</div>
+                    <select id="zoneFilter" class="report-select">
+                        <option value="__all__">Todas las zonas</option>
+                    </select>
+                    <button id="resetFiltersBtn" class="stats-toggle secondary" type="button">Reset filtros</button>
+                    <button id="downloadCsvBtn" class="stats-toggle" type="button">Descargar CSV</button>
+                </div>
+            </div>
+            <div class="kpi-grid" id="statsKpis"></div>
+        </section>
+
+        <section class="report-card">
+            <!-- Tendencia horaria general del dataset. -->
+            <h3>Tendencia por hora</h3>
+            <canvas id="statsHourChart" class="stats-chart stats-chart-wide" height="300"></canvas>
+        </section>
+
+        <section class="report-card">
+            <!-- Distribución de incidentes por tipo de delito. -->
+            <h3>Distribución por delito</h3>
+            <canvas id="statsCrimeChart" class="stats-chart stats-chart-small" height="220"></canvas>
+        </section>
+
+        <section class="report-card">
+            <!-- Comparación configurable entre dos años cualquiera. -->
+            <h3>Comparación por año</h3>
+            <div class="report-toolbar compact">
+                <div class="report-subtitle">Elige cualquier par de años disponibles en el dataset.</div>
+                <div class="report-actions">
+                    <select id="compareYearA" class="report-select"></select>
+                    <select id="compareYearB" class="report-select"></select>
+                </div>
+            </div>
+            <div class="comparison-summary" id="statsYearSummary"></div>
+            <canvas id="statsYearChart" class="stats-chart stats-chart-small" height="220"></canvas>
+        </section>
+
+        <section class="report-card">
+            <!-- Comparación mensual alineada con los años seleccionados. -->
+            <h3>Comparación mensual de los años</h3>
+            <canvas id="statsMonthChart" class="stats-chart stats-chart-wide" height="280"></canvas>
+        </section>
+
+        <section class="report-card">
+            <!-- Ranking de las zonas con mayor acumulación de incidentes. -->
+            <h3>Top zonas</h3>
+            <div id="statsTopZones"></div>
+        </section>
+
+        <section class="report-card">
+            <!-- Distribución temporal por fecha con vista compacta. -->
+            <h3>Distribución por fecha</h3>
+            <div class="report-toolbar compact">
+                <div class="report-subtitle">Resumen temporal de incidentes en formato compacto.</div>
+                <div class="report-actions">
+                    <select id="dateViewFilter" class="report-select">
+                        <option value="month">Por mes</option>
+                        <option value="day">Por fecha</option>
+                        <option value="year">Por año</option>
+                    </select>
+                </div>
+            </div>
+            <div id="statsDateSummary" class="compact-grid"></div>
+        </section>
+
+        <section class="report-card">
+            <!-- Resumen horario compacto o detallado según el selector. -->
+            <h3>Distribución por hora</h3>
+            <div class="report-toolbar compact">
+                <div class="report-subtitle">Resumen de incidentes por hora con vista compacta o completa.</div>
+                <div class="report-actions">
+                    <select id="hourViewFilter" class="report-select">
+                        <option value="summary">Resumen</option>
+                        <option value="full">Detalle completo</option>
+                    </select>
+                </div>
+            </div>
+            <div id="statsHourSummary" class="compact-grid"></div>
+        </section>
+
+        <section class="report-card">
+            <!-- Métricas que resumen la calidad de las predicciones del modelo. -->
+            <h3>Métricas del modelo</h3>
+            <div class="report-subtitle">Pulsa Más para ver qué significa cada métrica y cómo interpretarla.</div>
+            <div class="metrics-grid" id="modelMetrics"></div>
+            <div class="metrics-legend" id="metricsLegend"></div>
+        </section>
+    </main>
+
+    <script src="stats.js"></script>
+</body>
+</html>

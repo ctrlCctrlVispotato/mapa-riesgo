@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <!-- Vista principal del mapa con filtros, predicciones y estadísticas resumidas. -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa de Riesgo Urbano - Panamá</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a2e; color: #eee; }
+        .header { background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); padding: 15px; text-align: center; border-bottom: 2px solid #e94560; }
+        .header h1 { font-size: 1.5rem; }
+        .container { display: flex; height: calc(100vh - 70px); }
+        .sidebar { width: 350px; background: rgba(30, 30, 46, 0.95); padding: 15px; overflow-y: auto; border-right: 1px solid #e94560; }
+        .map-container { flex: 1; }
+        #map { height: 100%; width: 100%; }
+        .stats-panel, .prediction-panel, .zone-panel { background: rgba(20, 20, 35, 0.8); border-radius: 10px; padding: 15px; margin-bottom: 20px; border: 1px solid #e94560; }
+        h3 { color: #e94560; margin-bottom: 15px; font-size: 1rem; }
+        .stat-item { padding: 8px; margin: 5px 0; background: rgba(255,255,255,0.1); border-radius: 5px; }
+        #hourSlider { width: 100%; margin: 10px 0; }
+        button { background: #e94560; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; width: 100%; margin-top: 10px; font-weight: bold; }
+        button:hover { background: #ff6b8a; }
+        button:disabled { background: #666; cursor: not-allowed; }
+        .predicted-zone { padding: 8px; margin: 8px 0; background: rgba(233, 69, 96, 0.2); border-left: 3px solid #e94560; border-radius: 3px; }
+        .mode-indicator { padding: 10px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; line-height: 1.4; }
+        .mode-indicator.normal { background: rgba(76, 175, 80, 0.15); border: 1px solid rgba(76, 175, 80, 0.4); }
+        .mode-indicator.prediction { background: rgba(233, 69, 96, 0.18); border: 1px solid rgba(233, 69, 96, 0.4); }
+        .risk-bar { height: 4px; background: linear-gradient(90deg, #e94560, #ff9f43); border-radius: 2px; margin: 8px 0 4px 0; }
+        .top-risk-badge { display: inline-block; margin-left: 8px; padding: 2px 6px; border-radius: 999px; background: #ffcc00; color: #222; font-size: 0.72rem; font-weight: 700; }
+        .info-text { font-size: 0.85rem; color: #aaa; margin-top: 10px; text-align: center; }
+        #resetBtn { background: #4a4a6a; }
+        #resetBtn:hover { background: #5a5a7a; }
+    </style>
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <!-- Cabecera principal con navegación a estadísticas y rutas seguras. -->
+    <div class="header">
+        <div class="header-kicker">SIEC Panama Risk Intelligence</div>
+        <h1>Mapa de Riesgo Urbano</h1>
+        <p>Hotspots históricos, tendencia horaria y análisis territorial en una sola vista</p>
+        <div class="header-actions">
+            <button id="themeToggleBtn" class="stats-toggle secondary" type="button">Modo claro</button>
+            <a id="statsBtn" class="stats-toggle" href="/statistics">Estadísticas</a>
+            <a id="mapsBtn" class="stats-toggle" href="/maps">Rutas seguras</a>
+        </div>
+    </div>
+    
+    <!-- Contenedor principal con panel lateral y mapa. -->
+    <div class="container">
+        <div class="sidebar">
+            <!-- Resumen general del riesgo y filtros de visualización. -->
+            <div class="hero-card">
+                <div class="hero-head">
+                    <div class="hero-title">Resumen de riesgo</div>
+                    <span class="stats-toggle secondary" aria-hidden="true">Panel principal</span>
+                </div>
+                <div id="stats-content">Cargando...</div>
+            </div>
+
+            <!-- Filtros del mapa para ver datos recolectados o predicciones. -->
+            <div class="hero-card filter-card">
+                <div class="hero-title">Filtros del mapa</div>
+                <div class="filter-grid">
+                    <label class="filter-label">
+                        Año
+                        <select id="yearFilter" class="report-select">
+                            <option value="2024">2024</option>
+                            <option value="2025">2025</option>
+                            <option value="2026">2026</option>
+                        </select>
+                    </label>
+                    <label class="filter-label">
+                        Modo de visualización
+                        <select id="viewModeFilter" class="report-select">
+                            <option value="real">Datos recolectados</option>
+                            <option value="prediction">Predicciones</option>
+                        </select>
+                    </label>
+                    <label class="filter-label">
+                        Alcance visual
+                        <select id="analysisScopeFilter" class="report-select">
+                            <option value="general">General</option>
+                            <option value="monthly">Mes</option>
+                            <option value="hourly">Hora</option>
+                        </select>
+                    </label>
+                    <label class="filter-label">
+                        Mes
+                        <select id="viewMonthFilter" class="report-select">
+                            <option value="">Todos los meses</option>
+                            <option value="1">Enero</option>
+                            <option value="2">Febrero</option>
+                            <option value="3">Marzo</option>
+                            <option value="4">Abril</option>
+                            <option value="5">Mayo</option>
+                            <option value="6">Junio</option>
+                            <option value="7">Julio</option>
+                            <option value="8">Agosto</option>
+                            <option value="9">Septiembre</option>
+                            <option value="10">Octubre</option>
+                            <option value="11">Noviembre</option>
+                            <option value="12">Diciembre</option>
+                        </select>
+                    </label>
+                    <label class="filter-label">
+                        Hora
+                        <select id="viewHourFilter" class="report-select">
+                            <option value="">Todas las horas</option>
+                            <option value="0">00:00</option>
+                            <option value="1">01:00</option>
+                            <option value="2">02:00</option>
+                            <option value="3">03:00</option>
+                            <option value="4">04:00</option>
+                            <option value="5">05:00</option>
+                            <option value="6">06:00</option>
+                            <option value="7">07:00</option>
+                            <option value="8">08:00</option>
+                            <option value="9">09:00</option>
+                            <option value="10">10:00</option>
+                            <option value="11">11:00</option>
+                            <option value="12">12:00</option>
+                            <option value="13">13:00</option>
+                            <option value="14">14:00</option>
+                            <option value="15">15:00</option>
+                            <option value="16">16:00</option>
+                            <option value="17">17:00</option>
+                            <option value="18">18:00</option>
+                            <option value="19">19:00</option>
+                            <option value="20">20:00</option>
+                            <option value="21">21:00</option>
+                            <option value="22">22:00</option>
+                            <option value="23">23:00</option>
+                        </select>
+                    </label>
+                    <label class="filter-label">
+                        Tipo de crimen
+                        <select id="crimeFilter" class="report-select">
+                            <option value="todos">Todos</option>
+                            <option value="Robo">Robo</option>
+                            <option value="Homicidio">Homicidio</option>
+                            <option value="Femicidio">Femicidio</option>
+                        </select>
+                    </label>
+                    <label class="filter-label">
+                        Fecha inicial
+                        <input id="startDateFilter" type="date" class="report-input" />
+                        <span class="filter-hint">Selecciona desde el calendario</span>
+                    </label>
+                    <label class="filter-label">
+                        Fecha final
+                        <input id="endDateFilter" type="date" class="report-input" />
+                        <span class="filter-hint">Selecciona desde el calendario</span>
+                    </label>
+                </div>
+                <div class="filter-actions">
+                    <button id="applyFilterBtn" type="button">Aplicar filtro</button>
+                    <button id="clearFilterBtn" class="secondary-btn" type="button">Limpiar filtro</button>
+                    <button id="previousFilterBtn" class="secondary-btn" type="button">Filtro anterior</button>
+                </div>
+                <div id="activeFilterSummary" class="info-text">Mostrando todos los incidentes del dataset</div>
+            </div>
+
+            <!-- Tarjetas rápidas con indicadores clave. -->
+            <div class="kpi-grid" id="kpiGrid"></div>
+
+            <div id="modeIndicator" class="mode-indicator normal">
+                Modo: Normal - Mostrando todos los incidentes
+            </div>
+
+            <!-- Tendencia temporal general de los incidentes. -->
+            <div class="insight-card">
+                <h3>Tendencia por hora</h3>
+                <canvas id="hourChart" width="300" height="150"></canvas>
+                <div id="peak-hour" class="info-text"></div>
+            </div>
+            
+            <!-- Panel de predicciones del siguiente año. -->
+            <div class="zone-panel">
+                <h3>Predicciones</h3>
+                <label class="filter-label">
+                    Año objetivo
+                    <input type="number" id="predictionYearFilter" class="report-select" min="2024" max="2035" value="2025">
+                </label>
+                <label class="filter-label">
+                    Mes objetivo
+                    <select id="predictionMonthFilter" class="report-select">
+                        <option value="">Todo el año</option>
+                        <option value="1">Enero</option>
+                        <option value="2">Febrero</option>
+                        <option value="3">Marzo</option>
+                        <option value="4">Abril</option>
+                        <option value="5">Mayo</option>
+                        <option value="6">Junio</option>
+                        <option value="7">Julio</option>
+                        <option value="8">Agosto</option>
+                        <option value="9">Septiembre</option>
+                        <option value="10">Octubre</option>
+                        <option value="11">Noviembre</option>
+                        <option value="12">Diciembre</option>
+                    </select>
+                </label>
+                <input type="range" id="hourSlider" min="0" max="23" value="20">
+                <p style="text-align: center; margin: 5px 0;">Hora: <span id="hourValue">20:00</span></p>
+                <button id="predictBtn">Predecir zonas de riesgo</button>
+                <button id="resetBtn">Mostrar todas las zonas</button>
+                <div id="zonePrediction" style="margin-top: 15px;"></div>
+            </div>
+        </div>
+        
+        <!-- Mapa principal y capas de apoyo visual. -->
+        <div class="map-container">
+            <div id="mapBanner" class="map-banner">Visualizando datos reales del año seleccionado</div>
+            <div id="crimeOverlayPanel" class="map-overlay-card collapsed" tabindex="0">
+                <div class="map-overlay-head">
+                    <div>
+                        <div class="hero-title">Distribución por delito</div>
+                        <div id="crimeOverlayPreview" class="map-overlay-preview">Cargando...</div>
+                    </div>
+                    <button id="crimeOverlayToggle" class="stats-toggle secondary" type="button">Detalles</button>
+                </div>
+                <div class="map-overlay-body">
+                    <canvas id="crimeChart" width="320" height="180"></canvas>
+                </div>
+            </div>
+            <div class="map-toolbar">
+                <div class="toolbar-pill" id="dataSourcePill">Fuente: datos locales</div>
+                <div class="toolbar-pill" id="lastUpdatedPill">Estado: listo</div>
+            </div>
+            <div id="map"></div>
+        </div>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>

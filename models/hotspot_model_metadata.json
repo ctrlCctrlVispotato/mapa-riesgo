@@ -1,0 +1,33 @@
+{
+  "trained_at": "2026-06-27T08:54:15.248766Z",
+  "grid_size_degrees": 0.01,
+  "training_rows": 35697,
+  "source_rows": 12882,
+  "lat_min": 8.469565,
+  "lat_max": 9.164754,
+  "lon_min": -79.967621,
+  "lon_max": -79.274771,
+  "feature_columns": [
+    "grid_lat",
+    "grid_lon",
+    "hora",
+    "mes",
+    "dia_semana",
+    "hour_sin",
+    "hour_cos",
+    "month_sin",
+    "month_cos",
+    "dow_sin",
+    "dow_cos",
+    "hour_x_dow",
+    "cell_count",
+    "cell_hour_count",
+    "cell_month_count",
+    "cell_day_count",
+    "hour_count",
+    "month_count",
+    "day_count",
+    "nearby_cell_count",
+    "nearby_cell_hour_count"
+  ]
+}

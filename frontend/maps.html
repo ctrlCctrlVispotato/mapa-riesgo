@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa Seguro - Rutas y Zonas de Riesgo</title>
+    <style>
+        :root {
+            --bg: #eef3ef;
+            --panel: rgba(255, 255, 255, 0.96);
+            --panel-border: rgba(47, 62, 70, 0.12);
+            --text: #2f3e46;
+            --muted: #5f6f73;
+            --accent: #52796f;
+            --accent-strong: #354f52;
+            --danger: #c0392b;
+            --warning: #d68910;
+            --shadow: 0 18px 45px rgba(47, 62, 70, 0.12);
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
+            margin: 0;
+            height: 100%;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(133, 168, 154, 0.18), transparent 30%),
+                linear-gradient(180deg, #f8fbf9 0%, var(--bg) 100%);
+        }
+
+        body { overflow: hidden; }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 360px minmax(0, 1fr);
+            width: 100%;
+            height: 100vh;
+        }
+
+        .sidebar {
+            padding: 18px 16px;
+            background: var(--panel);
+            border-right: 1px solid var(--panel-border);
+            box-shadow: var(--shadow);
+            overflow-y: auto;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .brand h1 {
+            margin: 0;
+            font-size: 1.35rem;
+            color: var(--accent-strong);
+        }
+
+        .home-link {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .section {
+            margin-bottom: 16px;
+            padding: 14px;
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            background: linear-gradient(180deg, rgba(245, 248, 246, 0.95), rgba(255, 255, 255, 0.95));
+        }
+
+        .section h2 {
+            margin: 0 0 10px 0;
+            font-size: 1rem;
+            color: var(--accent-strong);
+        }
+
+        .field {
+            margin-bottom: 10px;
+        }
+
+        .field label {
+            display: block;
+            font-size: 0.82rem;
+            margin-bottom: 6px;
+            color: var(--muted);
+            font-weight: 700;
+        }
+
+        .control, .btn {
+            width: 100%;
+            border-radius: 12px;
+            border: 1px solid rgba(47, 62, 70, 0.18);
+            padding: 10px 12px;
+            font-size: 0.95rem;
+            color: var(--text);
+            background: #fff;
+            outline: none;
+        }
+
+        .control:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(82, 121, 111, 0.15);
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .btn {
+            cursor: pointer;
+            font-weight: 700;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 18px rgba(47, 62, 70, 0.12);
+        }
+
+        .btn.primary {
+            background: linear-gradient(180deg, #7f9b92 0%, #52796f 100%);
+            color: #fff;
+            border-color: transparent;
+        }
+
+        .btn.secondary {
+            background: linear-gradient(180deg, #f3f7f5 0%, #e5ece8 100%);
+        }
+
+        .status {
+            padding: 12px;
+            border-radius: 12px;
+            background: rgba(82, 121, 111, 0.08);
+            border: 1px solid rgba(82, 121, 111, 0.18);
+            font-size: 0.92rem;
+            color: var(--accent-strong);
+            line-height: 1.45;
+        }
+
+        .status strong { color: var(--accent-strong); }
+
+        .zone-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .zone-card {
+            padding: 12px;
+            border-radius: 14px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(249, 250, 249, 0.98));
+            border: 1px solid rgba(47, 62, 70, 0.1);
+        }
+
+        .zone-card .title {
+            font-weight: 800;
+            color: var(--accent-strong);
+            margin-bottom: 4px;
+        }
+
+        .zone-card .meta {
+            font-size: 0.9rem;
+            color: var(--muted);
+        }
+
+        .map-wrap {
+            position: relative;
+            min-height: 100vh;
+            background: #dfe9e4;
+        }
+
+        #map {
+            width: 100%;
+            height: 100vh;
+        }
+
+        .map-banner {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            z-index: 5;
+            padding: 12px 16px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid rgba(82, 121, 111, 0.22);
+            box-shadow: 0 12px 28px rgba(47, 62, 70, 0.12);
+            color: var(--accent-strong);
+            font-weight: 800;
+            backdrop-filter: blur(8px);
+            max-width: calc(100% - 32px);
+        }
+
+        .map-banner strong {
+            color: var(--danger);
+        }
+
+        .legend {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+            font-size: 0.86rem;
+            color: var(--muted);
+        }
+
+        .legend span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .dot.red { background: rgba(192, 57, 43, 0.85); }
+        .dot.orange { background: rgba(214, 137, 16, 0.9); }
+        .dot.green { background: rgba(82, 121, 111, 0.9); }
+
+        @media (max-width: 980px) {
+            body { overflow: auto; }
+            .layout {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            .sidebar {
+                max-height: none;
+            }
+            .map-wrap, #map {
+                height: 70vh;
+                min-height: 70vh;
+            }
+        }
+    </style>
+    <script src="/maps.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC5g0mtUwLhHeG77etBp1TCJpXI-1AmtgM&libraries=geometry,places&callback=initMap" async defer></script>
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="brand">
+                <h1>Rutas seguras</h1>
+                <a class="home-link" href="/">Volver</a>
+            </div>
+
+            <div class="section">
+                <h2>Ruta</h2>
+                <div class="field">
+                    <label for="originInput">Origen</label>
+                    <input id="originInput" class="control" type="text" placeholder="Ej. Albrook Mall">
+                </div>
+                <div class="field">
+                    <label for="destinationInput">Destino</label>
+                    <input id="destinationInput" class="control" type="text" placeholder="Ej. Ciudad del Saber">
+                </div>
+                <button id="routeBtn" class="btn primary" type="button">Calcular ruta segura</button>
+                <button id="clearBtn" class="btn secondary" type="button" style="margin-top:10px;">Limpiar ruta</button>
+            </div>
+
+            <div class="section">
+                <h2>Filtro de riesgo</h2>
+                <div class="controls-grid">
+                    <div class="field">
+                        <label for="riskYear">Año</label>
+                        <input id="riskYear" class="control" type="number" min="2024" max="2035" value="2025">
+                    </div>
+                    <div class="field">
+                        <label for="riskMonth">Mes</label>
+                        <select id="riskMonth" class="control">
+                            <option value="">Todo el año</option>
+                            <option value="1">Enero</option>
+                            <option value="2">Febrero</option>
+                            <option value="3">Marzo</option>
+                            <option value="4">Abril</option>
+                            <option value="5">Mayo</option>
+                            <option value="6">Junio</option>
+                            <option value="7">Julio</option>
+                            <option value="8">Agosto</option>
+                            <option value="9">Septiembre</option>
+                            <option value="10">Octubre</option>
+                            <option value="11">Noviembre</option>
+                            <option value="12">Diciembre</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="riskHour">Hora</label>
+                    <button id="hourFilterToggleBtn" class="btn secondary" type="button" style="margin-bottom:10px;">Filtro por hora: apagado</button>
+                    <input id="riskHour" class="control" type="range" min="0" max="23" value="20">
+                    <div id="riskHourLabel" class="status" style="margin-top:8px; text-align:center;">Hora local: 20:00</div>
+                </div>
+                <button id="refreshZonesBtn" class="btn primary" type="button">Actualizar zonas de riesgo</button>
+                <button id="showAllZonesBtn" class="btn secondary" type="button" style="margin-top:10px;">Mostrar hotspots</button>
+                <button id="toggleZonesBtn" class="btn secondary" type="button" style="margin-top:10px;">Ocultar zonas de riesgo</button>
+                <div class="legend">
+                    <span><i class="dot red"></i> Riesgo alto</span>
+                    <span><i class="dot orange"></i> Riesgo medio</span>
+                    <span><i class="dot green"></i> Riesgo bajo</span>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>Estado</h2>
+                <div id="routeStatus" class="status">
+                    Escribe un origen y un destino para calcular una ruta segura.
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>Zonas de riesgo</h2>
+                <div id="zoneSummary" class="zone-list">
+                    <div class="zone-card">
+                        <div class="title">Sin datos</div>
+                        <div class="meta">Las zonas aparecerán al actualizar el mapa.</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="map-wrap">
+            <div id="mapBanner" class="map-banner">
+                Visualizando zonas de riesgo y rutas seguras.
+            </div>
+            <div id="map"></div>
+        </main>
+    </div>
+</body>
+</html>
