@@ -5,6 +5,7 @@ from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from datetime import datetime
 import pandas as pd
+import os
 
 try:
     from backend.services.analisis import get_risk_summary
@@ -672,4 +673,6 @@ if __name__ == "__main__":
     print("http://localhost:5000")
     print("http://localhost:5000/maps")
     print("=" * 50 + "\n")
-    app.run(debug=True, port=5000)
+    
+    host = os.environ.get("FLASK_HOST", "0.0.0.0")
+    app.run(debug=True, host=host, port=5000)
