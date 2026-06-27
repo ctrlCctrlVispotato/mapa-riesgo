@@ -1,0 +1,54 @@
+name: Build Docker Image
+
+on:
+  push:
+    tags:
+      - 'v*'
+  release:
+    types: [created]
+
+env:
+  IMAGE_NAME: mapa-riesgo
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ env.IMAGE_NAME }}:${{ github.ref_name }} .
+          docker tag ${{ env.IMAGE_NAME }}:${{ github.ref_name }} ${{ env.IMAGE_NAME }}:latest
+
+      - name: Save Docker image
+        run: |
+          docker save ${{ env.IMAGE_NAME }}:${{ github.ref_name }} -o ${{ env.IMAGE_NAME }}-${{ github.ref_name }}.tar
+          docker save ${{ env.IMAGE_NAME }}:latest -o ${{ env.IMAGE_NAME }}-latest.tar
+          ls -lh ${{ env.IMAGE_NAME }}-*.tar
+
+      - name: Upload to Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ env.IMAGE_NAME }}-${{ github.ref_name }}.tar
+            ${{ env.IMAGE_NAME }}-latest.tar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload to Tag
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            ${{ env.IMAGE_NAME }}-${{ github.ref_name }}.tar
+            ${{ env.IMAGE_NAME }}-latest.tar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
